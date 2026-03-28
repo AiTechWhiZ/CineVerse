@@ -77,8 +77,6 @@ async def get_recommendations(
                     "recommendations": []
                 }
             )
-            else:
-                raise HTTPException(status_code=404, detail=f"Movie '{movie}' not found")
         
         # Use the data directly from recommender which already includes poster URLs
         enhanced_recommendations = []
@@ -110,7 +108,7 @@ async def get_recommendations(
         
     except Exception as e:
         print("🔥 BACKEND ERROR:", e)
-raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/search")
 async def search_movies(
@@ -151,7 +149,7 @@ async def search_movies(
         
     except Exception as e:
         print("🔥 BACKEND ERROR:", e)
-raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/movie-details")
 async def get_movie_details(
@@ -187,7 +185,7 @@ async def get_movie_details(
         
     except Exception as e:
         print("🔥 BACKEND ERROR:", e)
-raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/all-movies")
 async def get_all_movies(
@@ -215,7 +213,7 @@ async def get_all_movies(
         
     except Exception as e:
         print("🔥 BACKEND ERROR:", e)
-raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/trending")
 async def get_trending_movies(
