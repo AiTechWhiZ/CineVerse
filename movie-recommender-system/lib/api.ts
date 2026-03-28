@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { Movie, RecommendationResponse, SearchResponse, TrendingResponse } from './types'
 
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// ✅ Use env OR fallback to your Render backend
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://cineverse-server-6uk4.onrender.com'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,31 +13,27 @@ const api = axios.create({
   },
 })
 
-// Request interceptor
+// ✅ Request interceptor
 api.interceptors.request.use(
   (config: any) => {
     console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`)
     return config
   },
-  (error: any) => {
-    return Promise.reject(error)
-  }
+  (error: any) => Promise.reject(error)
 )
 
-// Response interceptor
+// ✅ ONLY ONE response interceptor
 api.interceptors.response.use(
-  (response: any) => {
-    return response
-  },
+  (response: any) => response,
   (error: any) => {
-    console.error('API Error:', error.response?.data || error.message)
+    console.error('FULL ERROR:', error)
+    console.error('Response:', error.response)
+    console.error('Message:', error.message)
     return Promise.reject(error)
   }
 )
 
 export const movieApi = {
-  // Get movie recommendations
-  
   getRecommendations: async (movieTitle: string, limit: number = 10) => {
     try {
       const response = await api.get('/recommend', {
@@ -54,7 +51,6 @@ export const movieApi = {
     }
   },
 
-  // Search movies
   searchMovies: async (query: string, limit: number = 10): Promise<SearchResponse> => {
     const response = await api.get('/search', {
       params: { q: query, limit }
@@ -62,7 +58,6 @@ export const movieApi = {
     return response.data
   },
 
-  // Get movie details
   getMovieDetails: async (movieTitle: string): Promise<Movie> => {
     const response = await api.get('/movie-details', {
       params: { movie: movieTitle }
@@ -70,7 +65,6 @@ export const movieApi = {
     return response.data
   },
 
-  // Get all movies (paginated)
   getAllMovies: async (limit: number = 50, offset: number = 0) => {
     const response = await api.get('/all-movies', {
       params: { limit, offset }
@@ -78,7 +72,6 @@ export const movieApi = {
     return response.data
   },
 
-  // Get trending movies
   getTrendingMovies: async (timeWindow: string = 'week'): Promise<TrendingResponse> => {
     const response = await api.get('/trending', {
       params: { time_window: timeWindow }
@@ -86,13 +79,11 @@ export const movieApi = {
     return response.data
   },
 
-  // Get TMDB movie details
   getTmdbDetails: async (tmdbId: number) => {
     const response = await api.get(`/tmdb-details/${tmdbId}`)
     return response.data
   },
 
-  // Health check
   healthCheck: async () => {
     const response = await api.get('/health')
     return response.data
