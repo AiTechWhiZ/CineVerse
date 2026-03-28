@@ -19,7 +19,14 @@ app = FastAPI(
 
 @app.on_event("startup")
 def load_model():
-    print("Model ready:", recommender.movies_df is not None)
+    global recommender
+    try:
+        from recommender import MovieRecommender
+        recommender = MovieRecommender()
+        print("✅ Model loaded successfully")
+    except Exception as e:
+        print("❌ Startup failed:", e)
+        raise e
 
 # Enable CORS
 app.add_middleware(
@@ -60,19 +67,16 @@ async def get_recommendations(
     """
     try:
         recommendations = recommender.recommend_movies(movie, limit)
-        
-        if not recommendations:
-            # Try to find similar movies if exact match not found
+        if recommendations is None:
             search_results = recommender.search_movies(movie, 5)
-            if search_results:
-                return JSONResponse(
-                    status_code=404,
-                    content={
-                        "message": f"Movie '{movie}' not found. Did you mean:",
-                        "suggestions": search_results[:3],
-                        "recommendations": []
-                    }
-                )
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "message": f"Movie '{movie}' not found. Did you mean:",
+                    "suggestions": search_results[:3],
+                    "recommendations": []
+                }
+            )
             else:
                 raise HTTPException(status_code=404, detail=f"Movie '{movie}' not found")
         
@@ -105,7 +109,8 @@ async def get_recommendations(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print("🔥 BACKEND ERROR:", e)
+raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/search")
 async def search_movies(
@@ -145,7 +150,8 @@ async def search_movies(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print("🔥 BACKEND ERROR:", e)
+raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/movie-details")
 async def get_movie_details(
@@ -180,7 +186,8 @@ async def get_movie_details(
         return processed_movie_data
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print("🔥 BACKEND ERROR:", e)
+raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/all-movies")
 async def get_all_movies(
@@ -207,7 +214,8 @@ async def get_all_movies(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print("🔥 BACKEND ERROR:", e)
+raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/trending")
 async def get_trending_movies(

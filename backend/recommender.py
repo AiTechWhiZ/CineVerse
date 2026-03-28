@@ -25,6 +25,7 @@ class MovieRecommender:
             self.load_models()
         except Exception as e:
             print("Model loading failed:", e)
+            raise e
     
     def load_models(self):
         """Load the precomputed movie dictionary and similarity matrix"""
@@ -107,49 +108,53 @@ class MovieRecommender:
         return list(self.movies_df['title'].values())
     
     def recommend_movies(self, movie_title: str, top_n: int = 10) -> List[Dict]:
-        """
-        Get movie recommendations based on a given movie title
-        Matches the Streamlit logic exactly
-        """
-        try:
-            movie_index = self.get_movie_index(movie_title)
-            if movie_index is None:
-                return []
-            
-            distances = self.similarity_matrix[movie_index]
-            movies_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:top_n+1]
+    movie_index = self.get_movie_index(movie_title)
 
-            recommended_movies = []
-            for idx, i in enumerate(movies_list):
-                movie_idx = i[0]
-                movie_data = {
-                    'title': self.movies_df['title'][movie_idx],
-                    'movie_id': self.movies_df['movie_id'][movie_idx],
-                    'tags': self.movies_df['tags'][movie_idx]
-                }
-                
-                movie_id = movie_data['movie_id']
-                if movie_id is None:
-                    continue
-                
-                movie_data['similarity_score'] = float(i[1])
-                
-                # Add poster URL
-                poster_url = self.fetch_poster(movie_id) or "https://via.placeholder.com/500x750?text=No+Image"
-                movie_data['poster_url'] = poster_url
-                
-                # Add TMDB details
-                tmdb_details = self.fetch_details(movie_id)
-                movie_data.update(tmdb_details)
-                
-                recommended_movies.append(movie_data)
-            
-            return recommended_movies
-            
-        except Exception as e:
-            print(f"Error getting recommendations: {e}")
-            return []
-    
+    # 🔥 if movie not found
+    if movie_index is None:
+        return None
+
+    try:
+        distances = self.similarity_matrix[movie_index]
+
+        movies_list = sorted(
+            list(enumerate(distances)),
+            reverse=True,
+            key=lambda x: x[1]
+        )[1:top_n+1]
+
+        recommended_movies = []
+
+        for i in movies_list:
+            movie_idx = i[0]
+
+            # safety check
+            if movie_idx >= len(self.movies_df):
+                continue
+
+            movie_row = self.movies_df.iloc[movie_idx]
+            movie_id = movie_row['movie_id']
+
+            if movie_id is None:
+                continue
+
+            movie_data = {
+                'title': movie_row['title'],
+                'movie_id': movie_id,
+                'tags': movie_row['tags'],
+                'similarity_score': float(i[1]),
+                'poster_url': self.fetch_poster(movie_id)
+            }
+
+            movie_data.update(self.fetch_details(movie_id))
+            recommended_movies.append(movie_data)
+
+        return recommended_movies
+
+    except Exception as e:
+        print("🔥 CRASH in recommend_movies:", e)
+        raise e
+        
     def search_movies(self, query: str, limit: int = 10) -> List[Dict]:
         """
         Search for movies by title (fuzzy search)
@@ -215,4 +220,4 @@ class MovieRecommender:
             return None
 
 # Global recommender instance
-recommender = MovieRecommender()
+recommender = None
