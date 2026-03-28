@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from typing import List, Dict, Optional
 import os
+import gc
 
 # Create a requests Session with retries (mounted once)
 session = requests.Session()
@@ -34,14 +35,21 @@ class MovieRecommender:
             with open('models/movie_dict.pkl', 'rb') as f:
                 self.movies_df = pickle.load(f)
             
-            # Load similarity matrix
+            # Load similarity matrix with memory optimization
             with open('models/similarity.pkl', 'rb') as f:
-                self.similarity_matrix = pickle.load(f).astype(np.float32)
+                # Load as float16 to save memory (half precision)
+                similarity_matrix = pickle.load(f)
+                self.similarity_matrix = similarity_matrix.astype(np.float16)
             
             # Create movie to index mapping for fast lookup
             self.movie_to_index = {title.lower(): idx for idx, title in self.movies_df['title'].items()}
             
+            # Force garbage collection to free memory
+            del similarity_matrix
+            gc.collect()
+            
             print(f"Loaded {len(self.movies_df['title'])} movies and similarity matrix")
+            print(f"Similarity matrix shape: {self.similarity_matrix.shape}, dtype: {self.similarity_matrix.dtype}")
             
         except FileNotFoundError as e:
             print(f"Error loading model files: {e}")
@@ -115,7 +123,8 @@ class MovieRecommender:
             return None
 
         try:
-            distances = self.similarity_matrix[movie_index]
+            # Convert to float32 for calculations to avoid precision issues
+            distances = self.similarity_matrix[movie_index].astype(np.float32)
 
             movies_list = sorted(
                 list(enumerate(distances)),
