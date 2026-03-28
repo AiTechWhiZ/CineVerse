@@ -17,10 +17,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+def load_model():
+    print("Model ready:", recommender.movies_df is not None)
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -355,6 +359,10 @@ async def debug_env():
         "is_default": TMDB_API_KEY == "your_tmdb_api_key_here",
         "key_length": len(TMDB_API_KEY) if TMDB_API_KEY else 0
     }
+
+@app.get("/ping")
+def ping():
+    return {"status": "running"}
 
 @app.get("/health")
 async def health_check():

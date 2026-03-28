@@ -6,6 +6,7 @@ from functools import lru_cache
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from typing import List, Dict, Optional
+import os
 
 # Create a requests Session with retries (mounted once)
 session = requests.Session()
@@ -19,8 +20,11 @@ class MovieRecommender:
         self.movies_df = None
         self.similarity_matrix = None
         self.movie_to_index = {}
-        self.tmdb_api_key = "b7b9fae52595274479c98afab8c90ea3"  # Default API key
-        self.load_models()
+        self.tmdb_api_key = os.getenv("TMDB_API_KEY")
+        try:
+            self.load_models()
+        except Exception as e:
+            print("Model loading failed:", e)
     
     def load_models(self):
         """Load the precomputed movie dictionary and similarity matrix"""
@@ -31,7 +35,7 @@ class MovieRecommender:
             
             # Load similarity matrix
             with open('models/similarity.pkl', 'rb') as f:
-                self.similarity_matrix = pickle.load(f)
+                self.similarity_matrix = pickle.load(f).astype(np.float32)
             
             # Create movie to index mapping for fast lookup
             self.movie_to_index = {title.lower(): idx for idx, title in self.movies_df['title'].items()}

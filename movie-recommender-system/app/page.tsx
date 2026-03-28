@@ -52,7 +52,7 @@ export default function Home() {
       
       if (response.suggestions && response.suggestions.length > 0) {
         // Movie not found exactly, show suggestions
-        setError(`Movie "${movie.title}" not found. Did you mean: ${response.suggestions.map(s => s.title).join(', ')}?`)
+        setError(`Movie "${movie.title}" not found. Did you mean: ${response.suggestions.map((s: any) => s.title).join(', ')}?`)
         setRecommendations([])
       } else {
         setRecommendations(response.recommendations)

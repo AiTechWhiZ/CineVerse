@@ -1,11 +1,12 @@
 import axios from 'axios'
 import { Movie, RecommendationResponse, SearchResponse, TrendingResponse } from './types'
 
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -35,15 +36,19 @@ api.interceptors.response.use(
 
 export const movieApi = {
   // Get movie recommendations
-  getRecommendations: async (movieTitle: string, limit: number = 10): Promise<RecommendationResponse> => {
+  
+  getRecommendations: async (movieTitle: string, limit: number = 10) => {
     try {
       const response = await api.get('/recommend', {
         params: { movie: movieTitle, limit }
       })
       return response.data
     } catch (error: any) {
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Server is waking up... try again')
+      }
       if (error.response?.status === 404) {
-        return error.response.data // Return suggestions if movie not found
+        return error.response.data
       }
       throw error
     }

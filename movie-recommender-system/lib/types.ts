@@ -26,6 +26,7 @@ export interface RecommendationResponse {
   message?: string
 }
 
+
 export interface SearchResponse {
   query: string
   results: Movie[]
