@@ -6,7 +6,9 @@ import requests
 import os
 from dotenv import load_dotenv
 
-from recommender import recommender
+# Global variables for lazy loading
+recommender = None
+model_loaded = False
 
 # Load environment variables
 load_dotenv()
@@ -17,16 +19,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-@app.on_event("startup")
 def load_model():
-    global recommender
-    try:
-        from recommender import MovieRecommender
-        recommender = MovieRecommender()
-        print("✅ Model loaded successfully")
-    except Exception as e:
-        print("❌ Startup failed:", e)
-        raise e
+    """Load the model only when needed"""
+    global recommender, model_loaded
+    if not model_loaded:
+        try:
+            from recommender import MovieRecommender
+            recommender = MovieRecommender()
+            model_loaded = True
+            print("✅ Model loaded successfully")
+        except Exception as e:
+            print("❌ Model loading failed:", e)
+            raise e
+    return recommender
+
+@app.on_event("startup")
+def startup_event():
+    """Startup event - don't load model immediately"""
+    print("🚀 Application started - Model will be loaded on first request")
 
 # Enable CORS
 app.add_middleware(
@@ -66,9 +76,11 @@ async def get_recommendations(
     Get movie recommendations based on a given movie title
     """
     try:
-        recommendations = recommender.recommend_movies(movie, limit)
+        # Load model on first request
+        model = load_model()
+        recommendations = model.recommend_movies(movie, limit)
         if recommendations is None:
-            search_results = recommender.search_movies(movie, 5)
+            search_results = model.search_movies(movie, 5)
             return JSONResponse(
                 status_code=404,
                 content={
@@ -119,7 +131,8 @@ async def search_movies(
     Search for movies by title
     """
     try:
-        results = recommender.search_movies(q, limit)
+        model = load_model()
+        results = model.search_movies(q, limit)
         
         # Process results to match expected format
         processed_results = []
@@ -159,7 +172,8 @@ async def get_movie_details(
     Get detailed information about a specific movie
     """
     try:
-        movie_data = recommender.get_movie_details(movie)
+        model = load_model()
+        movie_data = model.get_movie_details(movie)
         
         if not movie_data:
             raise HTTPException(status_code=404, detail=f"Movie '{movie}' not found")
@@ -196,7 +210,8 @@ async def get_all_movies(
     Get a list of all movies (paginated)
     """
     try:
-        all_movies = recommender.get_all_movies()
+        model = load_model()
+        all_movies = model.get_all_movies()
         
         # Apply pagination
         start_idx = offset
@@ -280,7 +295,8 @@ async def get_trending_movies(
         
         # Fallback: Return popular movies from our dataset
         print("Using fallback: popular movies from dataset")
-        all_movies = recommender.get_all_movies()
+        model = load_model()
+        all_movies = model.get_all_movies()
         
         # Get some popular movie titles (you can customize this list)
         popular_titles = [
@@ -292,7 +308,7 @@ async def get_trending_movies(
         
         trending_movies = []
         for title in popular_titles:
-            movie_data = recommender.get_movie_details(title)
+            movie_data = model.get_movie_details(title)
             if movie_data:
                 # Convert to expected format
                 trending_movies.append({
@@ -373,10 +389,11 @@ def ping():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    global model_loaded
     return {
         "status": "healthy",
-        "recommender_loaded": recommender.movies_df is not None,
-        "total_movies": len(recommender.get_all_movies()) if recommender.movies_df is not None else 0
+        "recommender_loaded": model_loaded,
+        "total_movies": len(load_model().get_all_movies()) if model_loaded else 0
     }
 
 if __name__ == "__main__":
