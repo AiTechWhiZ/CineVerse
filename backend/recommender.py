@@ -108,53 +108,53 @@ class MovieRecommender:
         return list(self.movies_df['title'].values())
     
     def recommend_movies(self, movie_title: str, top_n: int = 10) -> List[Dict]:
-    movie_index = self.get_movie_index(movie_title)
+        movie_index = self.get_movie_index(movie_title)
 
-    # 🔥 if movie not found
-    if movie_index is None:
-        return None
+        # 🔥 if movie not found
+        if movie_index is None:
+            return None
 
-    try:
-        distances = self.similarity_matrix[movie_index]
+        try:
+            distances = self.similarity_matrix[movie_index]
 
-        movies_list = sorted(
-            list(enumerate(distances)),
-            reverse=True,
-            key=lambda x: x[1]
-        )[1:top_n+1]
+            movies_list = sorted(
+                list(enumerate(distances)),
+                reverse=True,
+                key=lambda x: x[1]
+            )[1:top_n+1]
 
-        recommended_movies = []
+            recommended_movies = []
 
-        for i in movies_list:
-            movie_idx = i[0]
+            for i in movies_list:
+                movie_idx = i[0]
 
-            # safety check
-            if movie_idx >= len(self.movies_df):
-                continue
+                # safety check
+                if movie_idx >= len(self.movies_df):
+                    continue
 
-            movie_row = self.movies_df.iloc[movie_idx]
-            movie_id = movie_row['movie_id']
+                movie_row = self.movies_df.iloc[movie_idx]
+                movie_id = movie_row['movie_id']
 
-            if movie_id is None:
-                continue
+                if movie_id is None:
+                    continue
 
-            movie_data = {
-                'title': movie_row['title'],
-                'movie_id': movie_id,
-                'tags': movie_row['tags'],
-                'similarity_score': float(i[1]),
-                'poster_url': self.fetch_poster(movie_id)
-            }
+                movie_data = {
+                    'title': movie_row['title'],
+                    'movie_id': movie_id,
+                    'tags': movie_row['tags'],
+                    'similarity_score': float(i[1]),
+                    'poster_url': self.fetch_poster(movie_id)
+                }
 
-            movie_data.update(self.fetch_details(movie_id))
-            recommended_movies.append(movie_data)
+                movie_data.update(self.fetch_details(movie_id))
+                recommended_movies.append(movie_data)
 
-        return recommended_movies
+            return recommended_movies
 
-    except Exception as e:
-        print("🔥 CRASH in recommend_movies:", e)
-        raise e
-        
+        except Exception as e:
+            print("🔥 CRASH in recommend_movies:", e)
+            raise e
+
     def search_movies(self, query: str, limit: int = 10) -> List[Dict]:
         """
         Search for movies by title (fuzzy search)
