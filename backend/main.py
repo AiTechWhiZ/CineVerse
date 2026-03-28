@@ -149,7 +149,7 @@ async def search_movies(
         
     except Exception as e:
         print("🔥 BACKEND ERROR:", e)
-    raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/movie-details")
 async def get_movie_details(
